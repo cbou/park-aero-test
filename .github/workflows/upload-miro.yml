@@ -34,11 +34,9 @@ jobs:
               filename=$(basename "$mmd_file")
               filename_without_ext="${filename%.mmd}"
               png_file="documentation/workflows/png/${filename_without_ext}.png"
-              mmdc -i "$mmd_file" -o "$png_file" -b 'transparent'
+              mmdc -i "$mmd_file" -o "$png_file" -b 'transparent' --puppeteerConfigFile puppeteer.config.json
             fi
           done
-        env:
-          PUPPETEER_ARGS: "--no-sandbox --disable-setuid-sandbox"
 
       - name: Commit and push PNG files
         run: |
