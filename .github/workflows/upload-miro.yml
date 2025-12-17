@@ -1,0 +1,32 @@
+name: Upload Miro Diagrams
+
+on:
+  push:
+    branches:
+      - main
+      - documentation
+
+jobs:
+  upload-diagrams:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up script permissions
+        run: chmod +x uplaod-miro.sh
+
+      - name: Upload Miro diagrams
+        env:
+          MIRO_TOKEN: ${{ secrets.MIRO_TOKEN }}
+          BOARD_ID: ${{ vars.BOARD_ID }}
+        run: |
+          for mmd_file in documentation/workflows/*.mmd; do
+            if [ -f "$mmd_file" ]; then
+              filename=$(basename "$mmd_file")
+              filename_without_ext="${filename%.mmd}"
+              echo "Processing $filename..."
+              ./uplaod-miro.sh "$mmd_file" "$filename_without_ext"
+            fi
+          done
