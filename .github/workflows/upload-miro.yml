@@ -33,7 +33,7 @@ jobs:
               filename_without_ext="${filename%.mmd}"
               png_file="documentation/workflows/png/${filename_without_ext}.png"
               echo "Rendering $filename to $png_file..."
-              mmdc -i "$mmd_file" -o "$png_file" -b transparent
+              mmdc -i "$mmd_file" -o "$png_file" -b transparent -p '{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}'
             fi
           done
 
