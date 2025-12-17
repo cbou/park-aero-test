@@ -16,6 +16,9 @@ DEFAULT_Y=0
 
 API_BASE="https://api.miro.com/v2"
 
+# Temporary file for downloaded images
+TEMP_IMAGE_FILE=""
+
 # =========================
 # Helpers
 # =========================
@@ -37,7 +40,7 @@ log "Searching for existing diagram '$DIAGRAM_NAME'…"
 WIDGET_ID=$(curl -s \
   -H "$(auth_header)" \
   "$API_BASE/boards/$BOARD_ID/items?limit=50" \
-| jq -r "
+  | jq -r "
   .data[]
   | select(.type == \"image\")
   | select(.data.title == \"$DIAGRAM_NAME\")
@@ -80,15 +83,41 @@ else
 fi
 
 # =========================
-# 4. Upload new SVG
+# 4. Handle image file (download if URL, use local if path)
 # =========================
 
-log "Uploading $IMAGE_FILE to Miro…"
+if [[ "$IMAGE_FILE" =~ ^https?:// ]]; then
+  log "Downloading image from URL: $IMAGE_FILE"
+  TEMP_IMAGE_FILE=$(mktemp)
+  curl -s -o "$TEMP_IMAGE_FILE" "$IMAGE_FILE" || {
+    log "Error: Failed to download image from URL"
+    exit 1
+  }
+  ACTUAL_IMAGE_FILE="$TEMP_IMAGE_FILE"
+else
+  ACTUAL_IMAGE_FILE="$IMAGE_FILE"
+fi
+
+if [[ ! -f "$ACTUAL_IMAGE_FILE" ]]; then
+  log "Error: Image file not found: $ACTUAL_IMAGE_FILE"
+  exit 1
+fi
+
+# =========================
+# 5. Upload image
+# =========================
+
+log "Uploading $ACTUAL_IMAGE_FILE to Miro…"
 
 UPLOAD_RESPONSE=$(curl -s -X POST \
   -H "$(auth_header)" \
-  -F "resource=@$IMAGE_FILE" \
+  -F "resource=@$ACTUAL_IMAGE_FILE" \
   "$API_BASE/boards/$BOARD_ID/images")
+
+# Clean up temporary file if we downloaded one
+if [[ -n "$TEMP_IMAGE_FILE" && -f "$TEMP_IMAGE_FILE" ]]; then
+  rm -f "$TEMP_IMAGE_FILE"
+fi
 
 ITEM_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
 
@@ -100,7 +129,7 @@ fi
 log "File uploaded successfully. Item ID: $ITEM_ID"
 
 # =========================
-# 5. Update metadata
+# 6. Update metadata
 # =========================
 
 log "Updating metadata (title and position)…"
