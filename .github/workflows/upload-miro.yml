@@ -13,9 +13,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up script permissions
-        run: echo "BOARD_ID=${{ vars.BOARD_ID }}"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Render Mermaid diagrams to PNG
+        run: |
+          mkdir -p documentation/workflows/png
+          for mmd_file in documentation/workflows/*.mmd; do
+            if [ -f "$mmd_file" ]; then
+              filename=$(basename "$mmd_file")
+              filename_without_ext="${filename%.mmd}"
+              png_file="documentation/workflows/png/${filename_without_ext}.png"
+              echo "Rendering $filename to $png_file..."
+              mmdc -i "$mmd_file" -o "$png_file" -b transparent
+            fi
+          done
+
+      - name: Commit and push PNG files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add documentation/workflows/png/*.png || true
+          if git diff --staged --quiet; then
+            echo "No PNG files to commit"
+          else
+            git commit -m "Auto-generate PNG diagrams from Mermaid files" || exit 0
+            git push || exit 0
+          fi
 
       - name: Set up script permissions
         run: chmod +x uplaod-miro.sh
@@ -24,12 +56,17 @@ jobs:
         env:
           MIRO_TOKEN: ${{ secrets.MIRO_TOKEN }}
           BOARD_ID: ${{ vars.BOARD_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
         run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
           for mmd_file in documentation/workflows/*.mmd; do
             if [ -f "$mmd_file" ]; then
               filename=$(basename "$mmd_file")
               filename_without_ext="${filename%.mmd}"
+              png_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${BRANCH_NAME}/documentation/workflows/png/${filename_without_ext}.png"
               echo "Processing $filename..."
-              ./uplaod-miro.sh "$mmd_file" "$filename_without_ext"
+              echo "PNG URL: $png_url"
+              ./uplaod-miro.sh "$png_url" "$filename_without_ext"
             fi
           done

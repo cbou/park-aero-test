@@ -8,7 +8,7 @@ set -euo pipefail
 MIRO_TOKEN="${MIRO_TOKEN:?MIRO_TOKEN not set}"
 BOARD_ID="${BOARD_ID:?BOARD_ID not set}"
 
-SVG_FILE="${1:?SVG file path must be provided as the first argument}"
+IMAGE_URL="${1:?Image URL must be provided as the first argument}"
 DIAGRAM_NAME="${2:?Diagram name must be provided as the second argument}"
 
 DEFAULT_X=0
@@ -83,7 +83,7 @@ fi
 # 4. Upload new SVG
 # =========================
 
-log "Uploading $SVG_FILE to Miro…"
+log "Uploading to Miro…"
 
 curl -s -X POST \
   -H "$(auth_header)" \
@@ -91,7 +91,7 @@ curl -s -X POST \
   "$API_BASE/boards/$BOARD_ID/images" \
   -d "{
     \"data\": {
-      \"url\": \"https://github.githubassets.com/assets/mona-loading-default-c3c7aad1282f.gif\",
+      \"url\": \"$IMAGE_URL\",
       \"title\": \"$DIAGRAM_NAME\"
     },
     \"position\": {
