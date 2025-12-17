@@ -26,13 +26,14 @@ jobs:
 
       - name: Render Mermaid diagrams to PNG
         run: |
+          echo "Start rendering mermaid diagrams"
           mkdir -p documentation/workflows/png
           for mmd_file in documentation/workflows/*.mmd; do
             if [ -f "$mmd_file" ]; then
+              echo "Processing $filename to $png_file..."
               filename=$(basename "$mmd_file")
               filename_without_ext="${filename%.mmd}"
               png_file="documentation/workflows/png/${filename_without_ext}.png"
-              echo "Rendering $filename to $png_file..."
               mmdc -i "$mmd_file" -o "$png_file" -b transparent'
             fi
           done
