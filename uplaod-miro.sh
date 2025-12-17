@@ -16,9 +16,6 @@ DEFAULT_Y=0
 
 API_BASE="https://api.miro.com/v2"
 
-# Temporary file for downloaded images
-TEMP_IMAGE_FILE=""
-
 # =========================
 # Helpers
 # =========================
@@ -83,41 +80,20 @@ else
 fi
 
 # =========================
-# 4. Handle image file (download if URL, use local if path)
+# 4. Upload image
 # =========================
 
-if [[ "$IMAGE_FILE" =~ ^https?:// ]]; then
-  log "Downloading image from URL: $IMAGE_FILE"
-  TEMP_IMAGE_FILE=$(mktemp)
-  curl -s -o "$TEMP_IMAGE_FILE" "$IMAGE_FILE" || {
-    log "Error: Failed to download image from URL"
-    exit 1
-  }
-  ACTUAL_IMAGE_FILE="$TEMP_IMAGE_FILE"
-else
-  ACTUAL_IMAGE_FILE="$IMAGE_FILE"
-fi
-
-if [[ ! -f "$ACTUAL_IMAGE_FILE" ]]; then
-  log "Error: Image file not found: $ACTUAL_IMAGE_FILE"
+if [[ ! -f "$IMAGE_FILE" ]]; then
+  log "Error: Image file not found: $IMAGE_FILE"
   exit 1
 fi
 
-# =========================
-# 5. Upload image
-# =========================
-
-log "Uploading $ACTUAL_IMAGE_FILE to Miro…"
+log "Uploading $IMAGE_FILE to Miro…"
 
 UPLOAD_RESPONSE=$(curl -s -X POST \
   -H "$(auth_header)" \
-  -F "resource=@$ACTUAL_IMAGE_FILE" \
+  -F "resource=@$IMAGE_FILE" \
   "$API_BASE/boards/$BOARD_ID/images")
-
-# Clean up temporary file if we downloaded one
-if [[ -n "$TEMP_IMAGE_FILE" && -f "$TEMP_IMAGE_FILE" ]]; then
-  rm -f "$TEMP_IMAGE_FILE"
-fi
 
 ITEM_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
 
@@ -129,7 +105,7 @@ fi
 log "File uploaded successfully. Item ID: $ITEM_ID"
 
 # =========================
-# 6. Update metadata
+# 5. Update metadata
 # =========================
 
 log "Updating metadata (title and position)…"

@@ -57,17 +57,17 @@ jobs:
         env:
           MIRO_TOKEN: ${{ secrets.MIRO_TOKEN }}
           BOARD_ID: ${{ vars.BOARD_ID }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF: ${{ github.ref }}
         run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
           for mmd_file in documentation/workflows/*.mmd; do
             if [ -f "$mmd_file" ]; then
               filename=$(basename "$mmd_file")
               filename_without_ext="${filename%.mmd}"
-              png_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${BRANCH_NAME}/documentation/workflows/png/${filename_without_ext}.png"
-              echo "Processing $filename..."
-              echo "PNG URL: $png_url"
-              ./uplaod-miro.sh "$png_url" "$filename_without_ext"
+              png_file="documentation/workflows/png/${filename_without_ext}.png"
+              if [ -f "$png_file" ]; then
+                echo "Processing $filename..."
+                ./uplaod-miro.sh "$png_file" "$filename_without_ext"
+              else
+                echo "Warning: PNG file not found: $png_file"
+              fi
             fi
           done
