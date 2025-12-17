@@ -33,9 +33,11 @@ jobs:
               filename_without_ext="${filename%.mmd}"
               png_file="documentation/workflows/png/${filename_without_ext}.png"
               echo "Rendering $filename to $png_file..."
-              mmdc -i "$mmd_file" -o "$png_file" -b transparent -p '{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}'
+              mmdc -i "$mmd_file" -o "$png_file" -b transparent'
             fi
           done
+        env:
+          PUPPETEER_ARGS: "--no-sandbox --disable-setuid-sandbox"
 
       - name: Commit and push PNG files
         run: |
