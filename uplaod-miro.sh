@@ -8,7 +8,7 @@ set -euo pipefail
 MIRO_TOKEN="${MIRO_TOKEN:?MIRO_TOKEN not set}"
 BOARD_ID="${BOARD_ID:?BOARD_ID not set}"
 
-IMAGE_URL="${1:?Image URL must be provided as the first argument}"
+IMAGE_FILE="${1:?Image file path must be provided as the first argument}"
 DIAGRAM_NAME="${2:?Diagram name must be provided as the second argument}"
 
 DEFAULT_X=0
@@ -83,22 +83,40 @@ fi
 # 4. Upload new SVG
 # =========================
 
-log "Uploading to Miro…"
+log "Uploading $IMAGE_FILE to Miro…"
 
-curl -s -X POST \
+UPLOAD_RESPONSE=$(curl -s -X POST \
+  -H "$(auth_header)" \
+  -F "resource=@$IMAGE_FILE" \
+  "$API_BASE/boards/$BOARD_ID/images")
+
+ITEM_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
+
+if [[ -z "$ITEM_ID" || "$ITEM_ID" == "null" ]]; then
+  log "Error: Failed to upload file. Response: $UPLOAD_RESPONSE"
+  exit 1
+fi
+
+log "File uploaded successfully. Item ID: $ITEM_ID"
+
+# =========================
+# 5. Update metadata
+# =========================
+
+log "Updating metadata (title and position)…"
+
+curl -s -X PATCH \
   -H "$(auth_header)" \
   -H "Content-Type: application/json" \
-  "$API_BASE/boards/$BOARD_ID/images" \
+  "$API_BASE/boards/$BOARD_ID/items/$ITEM_ID" \
   -d "{
     \"data\": {
-      \"url\": \"$IMAGE_URL\",
       \"title\": \"$DIAGRAM_NAME\"
     },
     \"position\": {
       \"x\": $X,
       \"y\": $Y
     }
-  }"
-  > /dev/null
+  }" > /dev/null
 
 log "Done. Diagram '$DIAGRAM_NAME' is up to date."
